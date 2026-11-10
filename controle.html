@@ -2,7 +2,7 @@
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>Contrôle d'essai A4b</title>
+<title>Contrôle d'essai A4b (données fictives)</title>
 <style>
 :root{color-scheme:light dark;--bg:#f6f4ea;--p:#fff;--t:#1c2a21;--m:#5d6b62;--ok:#0b7a3b;--ko:#b91c1c;--wa:#8a5200;--b:#d9dccd;--ac:#0b7a3b}
 @media(prefers-color-scheme:dark){:root{--bg:#161a15;--p:#1f2a22;--t:#e8f0e4;--m:#a3b3a8;--ok:#5fe08f;--ko:#f87171;--wa:#fbbf24;--b:#33453a;--ac:#5fe08f}}
@@ -18,13 +18,13 @@ button.main,a.main{background:var(--ac);color:#fff;border-color:transparent}@med
 #jr{font-size:.78rem;line-height:1.35;white-space:pre-wrap;word-break:break-all;margin:0;max-height:260px;overflow:auto}
 details summary{font-weight:700;cursor:pointer}ol{padding-left:1.2rem;margin:.4rem 0}
 </style></head><body>
-<h1>🧪 Contrôle d'essai A4b</h1>
+<h1>🧪 Contrôle d'essai A4b — copie à données fictives</h1>
 <p class="m" style="margin:.1rem 0 .8rem;font-size:.9rem">Page séparée de l'application. Elle <b>ne modifie jamais</b> vos données (clés <code>primeur_*</code>) : elle écrit seulement ses propres témoins (<code>essai_*</code>).</p>
 
 <section id="verdict" data-level="wa" data-code="attente"><h2>Verdict</h2><div id="vtxt">Analyse en cours…</div></section>
 
 <section><h2>1. Adresse et version</h2><div class="kv" id="s1"></div>
-<a class="btn main" href="index.html" id="lnkApp">Ouvrir l'application</a></section>
+<a class="btn main" href="a4b-fictif.html" id="lnkApp">Ouvrir l'application</a></section>
 
 <section><h2>2. Témoins hors application</h2><div class="kv" id="s2"></div>
 <p class="m" style="font-size:.82rem;margin:.5rem 0 0">Trois témoins séparés (localStorage, IndexedDB, cookie) : ils permettent de savoir si le navigateur a effacé le stockage du site, ou si seule l'application a remis ses données à zéro.</p></section>
@@ -298,7 +298,7 @@ if(typeof module!=="undefined"&&module.exports)module.exports=root.MDSBackup;
 <script>
 (function(){
 "use strict";
-var EXPECT_SHA="b60228bea86434b13aeb119cc2677c233bfe41d7ee75cb3eadf51a3a1e6d3212",EXPECT_SIZE=153376,DEFAULT_FP="c4927c084dc314ab",MAXJ=40;
+var EXPECT_SHA="a7ede8e44cc138f0f62b79df6674cf043ed6966e0b5fda70f1f88e3d7beab73a",EXPECT_SIZE=152679,DEFAULT_FP="2e20594014ca7927",MAXJ=40;
 var $=function(i){return document.getElementById(i)};
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function row(k,v){return "<b>"+esc(k)+"</b><span>"+v+"</span>"}
@@ -325,10 +325,10 @@ async function main(){
   var now=new Date().toISOString(),secure=window.isSecureContext;
   // ---- 1. adresse et version
   var ver={ok:null,sha:"",size:0,err:""};
-  try{var r=await fetch("index.html",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status+" : index.html absent à cette adresse");var buf=await r.arrayBuffer();ver.size=buf.byteLength;ver.sha=hex(await crypto.subtle.digest("SHA-256",buf));ver.ok=(ver.sha===EXPECT_SHA&&ver.size===EXPECT_SIZE)}catch(e){ver.err=String(e&&e.message||e)}
+  try{var r=await fetch("a4b-fictif.html",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status+" : a4b-fictif.html absent à cette adresse");var buf=await r.arrayBuffer();ver.size=buf.byteLength;ver.sha=hex(await crypto.subtle.digest("SHA-256",buf));ver.ok=(ver.sha===EXPECT_SHA&&ver.size===EXPECT_SIZE)}catch(e){ver.err=String(e&&e.message||e)}
   var href=location.href.split("#")[0],base=href.replace(/[^\/]*$/,"");
-  $("s1").innerHTML=row("Adresse de la page",esc(href))+row("Adresse de l'application",esc(base+"index.html"))+row("Origine",esc(location.origin))+row("HTTPS",location.protocol==="https:"?'<span class="ok">oui</span>':(secure?'<span class="wa">non (contexte sûr local)</span>':'<span class="ko">non</span>'))
-   +row("Version servie",ver.ok===null?'<span class="wa">non vérifiable ('+esc(ver.err)+")</span>":(ver.ok?'<span class="ok">✔ A4b attendue</span>':'<span class="ko">✘ DIFFÉRENTE de l\'A4b attendue</span>'))
+  $("s1").innerHTML=row("Adresse de la page",esc(href))+row("Adresse de l'application",esc(base+"a4b-fictif.html"))+row("Origine",esc(location.origin))+row("HTTPS",location.protocol==="https:"?'<span class="ok">oui</span>':(secure?'<span class="wa">non (contexte sûr local)</span>':'<span class="ko">non</span>'))
+   +row("Version servie",ver.ok===null?'<span class="wa">non vérifiable ('+esc(ver.err)+")</span>":(ver.ok?'<span class="ok">✔ copie A4b à données fictives attendue</span>':'<span class="ko">✘ DIFFÉRENTE de la copie attendue</span>'))
    +row("SHA-256 (16 premiers)",esc(ver.sha.slice(0,16)||"—")+" <span class='m'>attendu "+EXPECT_SHA.slice(0,16)+"</span>")+row("Taille",esc(ver.size)+" o <span class='m'>attendu "+EXPECT_SIZE+"</span>");
   // ---- 2. témoins (état AVANT cette ouverture)
   var db=await openDb(),idb0=await dbGet(db,"temoin"),ls0=pj(rd("essai_temoin_v1")),ck0=ckGet();
@@ -350,7 +350,7 @@ async function main(){
   else $("s4").textContent="Rien de mémorisé. Faites une saisie « ESSAI » dans l'application, revenez ici, relisez, puis mémorisez.";
   // ---- verdict
   var code,lv,tx;
-  if(ver.ok===false){code="version";lv="ko";tx="<b class='ko'>La version servie n'est pas l'A4b attendue.</b> Ne concluez rien sur la persistance."}
+  if(ver.ok===false){code="version";lv="ko";tx="<b class='ko'>La version servie n'est pas la copie attendue.</b> Ne concluez rien sur la persistance."}
   else if(!att&&!any){code="premiere";lv="wa";tx="<b>Première ouverture sur cette adresse</b> (ou stockage entièrement effacé depuis la dernière fois : si vous avez déjà ouvert cette page, le navigateur a tout effacé — voir le journal)."}
   else if(!att){code="sans_attendu";lv="wa";tx="Témoins présents, aucun état attendu mémorisé : rien à comparer."}
   else if(same(cur,att)){code="identique";lv="ok";tx="<b class='ok'>✔ Données identiques à l'état attendu</b> (même empreinte, mêmes clés, mêmes saisies)."}
