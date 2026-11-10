@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Contrôle d'essai A4b</title>
+<style>
+:root{color-scheme:light dark;--bg:#f6f4ea;--p:#fff;--t:#1c2a21;--m:#5d6b62;--ok:#0b7a3b;--ko:#b91c1c;--wa:#8a5200;--b:#d9dccd;--ac:#0b7a3b}
+@media(prefers-color-scheme:dark){:root{--bg:#161a15;--p:#1f2a22;--t:#e8f0e4;--m:#a3b3a8;--ok:#5fe08f;--ko:#f87171;--wa:#fbbf24;--b:#33453a;--ac:#5fe08f}}
+*{box-sizing:border-box}body{margin:0;padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 40px);background:var(--bg);color:var(--t);font:16px/1.45 -apple-system,system-ui,"Segoe UI",sans-serif;max-width:640px;margin-inline:auto}
+h1{font-size:1.25rem;margin:.2rem 0 .6rem}h2{font-size:1rem;margin:0 0 .5rem}
+section{background:var(--p);border:1px solid var(--b);border-radius:14px;padding:12px 14px;margin:0 0 12px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.92rem}.kv b{color:var(--m);font-weight:600}.kv span{word-break:break-all}
+.ok{color:var(--ok);font-weight:700}.ko{color:var(--ko);font-weight:700}.wa{color:var(--wa);font-weight:700}.m{color:var(--m)}
+code,.mono{font-family:ui-monospace,Menlo,monospace;font-size:.86rem}
+button,a.btn{font:inherit;font-weight:600;border:1px solid var(--b);background:var(--p);color:var(--t);border-radius:12px;padding:11px 14px;margin:4px 6px 4px 0;display:inline-block;text-decoration:none;min-height:44px}
+button.main,a.main{background:var(--ac);color:#fff;border-color:transparent}@media(prefers-color-scheme:dark){button.main,a.main{color:#10210f}}
+#verdict{border-width:2px}#verdict[data-level=ok]{border-color:var(--ok)}#verdict[data-level=ko]{border-color:var(--ko)}#verdict[data-level=wa]{border-color:var(--wa)}
+#jr{font-size:.78rem;line-height:1.35;white-space:pre-wrap;word-break:break-all;margin:0;max-height:260px;overflow:auto}
+details summary{font-weight:700;cursor:pointer}ol{padding-left:1.2rem;margin:.4rem 0}
+</style></head><body>
+<h1>🧪 Contrôle d'essai A4b</h1>
+<p class="m" style="margin:.1rem 0 .8rem;font-size:.9rem">Page séparée de l'application. Elle <b>ne modifie jamais</b> vos données (clés <code>primeur_*</code>) : elle écrit seulement ses propres témoins (<code>essai_*</code>).</p>
+
+<section id="verdict" data-level="wa" data-code="attente"><h2>Verdict</h2><div id="vtxt">Analyse en cours…</div></section>
+
+<section><h2>1. Adresse et version</h2><div class="kv" id="s1"></div>
+<a class="btn main" href="index.html" id="lnkApp">Ouvrir l'application</a></section>
+
+<section><h2>2. Témoins hors application</h2><div class="kv" id="s2"></div>
+<p class="m" style="font-size:.82rem;margin:.5rem 0 0">Trois témoins séparés (localStorage, IndexedDB, cookie) : ils permettent de savoir si le navigateur a effacé le stockage du site, ou si seule l'application a remis ses données à zéro.</p></section>
+
+<section><h2>3. Données de l'application</h2><div class="kv" id="s3"></div></section>
+
+<section><h2>4. État attendu</h2><div id="s4" class="m" style="font-size:.92rem"></div>
+<button class="main" id="bAtt">📌 Mémoriser l'état actuel comme « attendu »</button><button id="bRel">↻ Relire</button></section>
+
+<section><h2>5. Journal des ouvertures de cette page</h2><pre id="jr" class="mono"></pre>
+<button id="bCp">📋 Copier le journal</button><button id="bRaz">🧹 Effacer les témoins</button></section>
+
+<details style="margin:0 0 12px"><summary>Mode d'emploi</summary><ol>
+<li>Ouvrez cette page, puis l'application : faites une saisie « ESSAI » (onglet ✍️ Saisir).</li>
+<li>Revenez ici, touchez <b>↻ Relire</b> : les données changent. Touchez <b>📌 Mémoriser</b>.</li>
+<li>Rechargez l'application, puis cette page : verdict « identique ».</li>
+<li>Fermez complètement Safari, attendez 10 s, rouvrez <b>cette page</b> : lisez le verdict et notez les ouvertures.</li>
+</ol></details>
+
+<script>
+(function(root){
+"use strict";
+var PREFIX="primeur_",SNAP="pbak_last",MSG="pbak_msg",LASTX="pbak_lastexport",
+    FORMAT="le-marche-des-saveurs/sauvegarde",VERSION=1;
+
+/* ---------- utilitaires ---------- */
+function isObj(x){return !!x&&typeof x==="object"&&!Array.isArray(x)}
+function isNum(x){return typeof x==="number"&&isFinite(x)}
+function isStr(x){return typeof x==="string"}
+function isDate(s){return isStr(s)&&/^\d{4}-\d{2}-\d{2}$/.test(s)}
+function has(o,k){return Object.prototype.hasOwnProperty.call(o,k)}
+function parse(raw){try{return{ok:true,val:JSON.parse(raw)}}catch(e){return{ok:false,val:null}}}
+function same(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+function norm(s){return String(s==null?"":s).trim().toLowerCase()}
+
+/* ---------- SHA-256 (indépendant du navigateur) ---------- */
+function sha256(str){
+  var m=new TextEncoder().encode(str),l=m.length,ps=[],x,i,j;
+  for(x=2;ps.length<64;x++){var p=true;for(j=2;j*j<=x;j++)if(x%j===0){p=false;break}if(p)ps.push(x)}
+  var K=ps.map(function(q){return Math.floor((Math.pow(q,1/3)%1)*4294967296)>>>0});
+  var H=ps.slice(0,8).map(function(q){return Math.floor((Math.sqrt(q)%1)*4294967296)>>>0});
+  var nb=((l+9+63)>>6)<<6,buf=new Uint8Array(nb);buf.set(m);buf[l]=128;
+  var dv=new DataView(buf.buffer);dv.setUint32(nb-8,Math.floor(l/536870912));dv.setUint32(nb-4,(l<<3)>>>0);
+  var rr=function(v,n){return(v>>>n)|(v<<(32-n))};
+  for(var o=0;o<nb;o+=64){
+    var w=new Array(64);
+    for(i=0;i<16;i++)w[i]=dv.getUint32(o+i*4);
+    for(i=16;i<64;i++){var a1=w[i-15],b1=w[i-2];
+      w[i]=(w[i-16]+(rr(a1,7)^rr(a1,18)^(a1>>>3))+w[i-7]+(rr(b1,17)^rr(b1,19)^(b1>>>10)))>>>0}
+    var a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+    for(i=0;i<64;i++){
+      var t1=(h+(rr(e,6)^rr(e,11)^rr(e,25))+((e&f)^(~e&g))+K[i]+w[i])>>>0,
+          t2=((rr(a,2)^rr(a,13)^rr(a,22))+((a&b)^(a&c)^(b&c)))>>>0;
+      h=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0}
+    H[0]=(H[0]+a)>>>0;H[1]=(H[1]+b)>>>0;H[2]=(H[2]+c)>>>0;H[3]=(H[3]+d)>>>0;
+    H[4]=(H[4]+e)>>>0;H[5]=(H[5]+f)>>>0;H[6]=(H[6]+g)>>>0;H[7]=(H[7]+h)>>>0}
+  return H.map(function(v){return("00000000"+v.toString(16)).slice(-8)}).join("")}
+
+/* ---------- lecture du stockage ---------- */
+function readLocal(st){var d={};
+  for(var i=0;i<st.length;i++){var k=st.key(i);if(k&&k.indexOf(PREFIX)===0)d[k]=st.getItem(k)}
+  return d}
+function canonical(d){return Object.keys(d).sort().map(function(k){return k+"\u0000"+d[k]}).join("\u0001")}
+function fingerprint(d){return sha256(canonical(d))}
+function sizeOf(d){var n=0;Object.keys(d).forEach(function(k){n+=k.length+String(d[k]).length});return n}
+
+/* ---------- description et contrôle des clés connues ---------- */
+function errs(list,max){return list.slice(0,max||4)}
+function arrOf(v,lab,test){var e=[];if(!Array.isArray(v))return["doit être une liste"];
+  v.forEach(function(x,i){if(!isObj(x)){e.push(lab+" n°"+(i+1)+" : format invalide");return}
+    var m=test(x);if(m)e.push(lab+" n°"+(i+1)+" : "+m)});return e}
+function objOf(v,test){if(!isObj(v))return["doit être un objet"];var e=[];
+  Object.keys(v).forEach(function(k){var m=test(v[k],k);if(m)e.push(k+" : "+m)});return e}
+var KEYS={
+ "primeur_log_v1":{label:"Saisies (factures, pertes)",kind:"array",prod:function(x){return x.prod},
+   check:function(v){return arrOf(v,"saisie",function(x){
+     if(x.t!=="f"&&x.t!=="p")return"type inconnu";if(!isStr(x.prod)||!x.prod)return"produit manquant";
+     if(!isNum(x.kg)||!(x.kg>0))return"quantité invalide";if(!isDate(x.date))return"date invalide";
+     if(x.t==="f"&&(!isNum(x.price)||!(x.price>0)))return"prix invalide";return""})}},
+ "primeur_cp_v1":{label:"Produits ajoutés",kind:"array",
+   check:function(v){return arrOf(v,"produit",function(x){
+     if(!isStr(x.name)||!x.name)return"nom manquant";if(!isNum(x.sell)||!(x.sell>0))return"prix de vente invalide";
+     if(!isNum(x.est)||!(x.est>0))return"ventes estimées invalides";if(!isNum(x.pa)||!(x.pa>0))return"prix d’achat invalide";return""})}},
+ "primeur_tva_p":{label:"TVA par produit",kind:"object",
+   check:function(v){return objOf(v,function(x){return isNum(x)&&x>=0&&x<1?"":"taux invalide"})}},
+ "primeur_dlc":{label:"Durées de conservation",kind:"object",
+   check:function(v){return objOf(v,function(x){return isNum(x)&&x>=1&&x<=90?"":"durée invalide"})}},
+ "primeur_promos_v1":{label:"Promotions mesurées",kind:"array",prod:function(x){return x.prod},
+   check:function(v){return arrOf(v,"promotion",function(x){
+     if(!isStr(x.prod)||!x.prod)return"produit manquant";if(!isNum(x.disc)||x.disc<0||x.disc>1)return"remise invalide";
+     if(!isNum(x.days)||x.days<1)return"durée invalide";if(!isDate(x.date))return"date invalide";
+     if(!isNum(x.kg)||x.kg<0)return"quantité invalide";if(x.waste!==undefined&&(!isNum(x.waste)||x.waste<0))return"pertes invalides";return""})}},
+ "primeur_clients_v1":{label:"Clients",kind:"array",
+   check:function(v){return arrOf(v,"client",function(x){
+     if(x.id===undefined||x.id===null)return"identifiant manquant";if(!isStr(x.name)||!x.name)return"nom manquant";
+     if(x.type!=="pro"&&x.type!=="part")return"type inconnu";if(x.prices!==undefined&&!isObj(x.prices))return"tarifs invalides";return""})}},
+ "primeur_orders_v1":{label:"Commandes clients",kind:"array",
+   check:function(v){return arrOf(v,"commande",function(x){
+     if(x.id===undefined||x.id===null)return"identifiant manquant";if(!isDate(x.date))return"date invalide";
+     if(["prep","ready","done"].indexOf(x.status)<0)return"statut inconnu";if(!Array.isArray(x.lines))return"lignes manquantes";
+     for(var i=0;i<x.lines.length;i++){var l=x.lines[i];
+       if(!isObj(l)||!isStr(l.prod)||!isNum(l.kg)||!(l.kg>0)||!isNum(l.price)||!(l.price>0))return"ligne "+(i+1)+" invalide"}return""})}},
+ "primeur_shop_v1":{label:"Infos du commerce",kind:"object",
+   check:function(v){return objOf(v,function(x){return isStr(x)?"":"texte attendu"})}},
+ "primeur_invseq":{label:"Compteur de factures",kind:"scalar",
+   check:function(v){return(isNum(v)&&v>=0&&v%1===0)?[]:["entier positif attendu"]}},
+ "primeur_ref_v1":{label:"Références produits",kind:"object",
+   check:function(v){return objOf(v,function(x){return isStr(x)?"":"texte attendu"})}},
+ "primeur_cat_v1":{label:"Catégories modifiées",kind:"object",
+   check:function(v){return objOf(v,function(x){return isStr(x)?"":"texte attendu"})}},
+ "primeur_ord_v1":{label:"Ordre du magasin",kind:"array",
+   check:function(v){return Array.isArray(v)?(v.every(isStr)?[]:["noms de produits attendus"]):["doit être une liste"]}},
+ "primeur_act_v1":{label:"Promotions en cours",kind:"array",prod:function(x){return x.prod},
+   check:function(v){return arrOf(v,"promotion",function(x){
+     if(!isStr(x.prod)||!x.prod)return"produit manquant";if(!isNum(x.qty)||x.qty<1)return"quantité invalide";
+     if(!isNum(x.price)||x.price<0)return"prix invalide";return""})}},
+ "primeur_info_hide":{label:"Bandeau « chiffres estimés »",kind:"flag"},
+ "primeur_seed_DT491214":{label:"Amorçage facture DT491214",kind:"flag"},
+ "primeur_v2":{label:"Version des données",kind:"flag"}
+};
+function labelOf(k){return KEYS[k]?KEYS[k].label:k+" (clé inconnue)"}
+function countOf(k,v){if(Array.isArray(v))return v.length;if(isObj(v))return Object.keys(v).length;return 1}
+
+/* ---------- construction de la sauvegarde ---------- */
+function build(d,meta){meta=meta||{};
+  var contenu={},resume={};
+  Object.keys(d).sort().forEach(function(k){var p=parse(d[k]);contenu[k]=p.ok?p.val:d[k];
+    resume[k]={libelle:labelOf(k),elements:p.ok?countOf(k,p.val):null}});
+  return{format:FORMAT,version:VERSION,creeLe:meta.at||new Date().toISOString(),
+    application:"Le marché des saveurs",origine:meta.origin||"",fuseau:meta.tz||"",
+    nombreDeCles:Object.keys(d).length,empreinte:"sha256:"+fingerprint(d),
+    resume:resume,
+    "_lisezMoi":"Seul le bloc 'donnees' (texte exact de chaque clé) est utilisé à l’import et protégé par l’empreinte. Le bloc 'contenu' est une version lisible, en lecture seule.",
+    donnees:d,contenu:contenu}}
+
+/* ---------- vérification d'un fichier ---------- */
+function verify(obj,ctx){
+  var R={ok:false,errors:[],warnings:[],data:null,keys:[]};ctx=ctx||{};
+  if(!isObj(obj)){R.errors.push("Ce fichier n’est pas une sauvegarde (contenu JSON invalide).");return R}
+  if(obj.format!==FORMAT){R.errors.push("Ce fichier n’est pas une sauvegarde du Marché des saveurs.");return R}
+  if(!isNum(obj.version)||obj.version>VERSION){R.errors.push("Sauvegarde créée par une version plus récente de l’application : mettez l’appli à jour avant d’importer.");return R}
+  if(!isObj(obj.donnees)){R.errors.push("Le bloc de données est absent.");return R}
+  var d={},bad=false;
+  Object.keys(obj.donnees).forEach(function(k){var v=obj.donnees[k];
+    if(k.indexOf(PREFIX)!==0){R.warnings.push("Clé étrangère ignorée : "+k);return}
+    if(!isStr(v)){R.errors.push("« "+k+" » : valeur illisible.");bad=true;return}
+    d[k]=v});
+  if(bad)return R;
+  if(!Object.keys(d).length){R.errors.push("La sauvegarde ne contient aucune donnée.");return R}
+  var fp="sha256:"+fingerprint(d);
+  if(obj.empreinte!==fp){R.errors.push("Le fichier est altéré ou incomplet (l’empreinte ne correspond pas). Utilisez la sauvegarde d’origine.");return R}
+  if(isNum(obj.nombreDeCles)&&obj.nombreDeCles!==Object.keys(d).length)R.warnings.push("Le nombre de clés annoncé diffère du contenu.");
+  var names={};(ctx.names||[]).forEach(function(n){names[n]=1});
+  var pc=d["primeur_cp_v1"]?parse(d["primeur_cp_v1"]):null;
+  if(pc&&pc.ok&&Array.isArray(pc.val))pc.val.forEach(function(c){if(c&&c.name)names[c.name]=1});
+  Object.keys(d).sort().forEach(function(k){
+    var spec=KEYS[k],p=parse(d[k]),row={key:k,label:labelOf(k),count:p.ok?countOf(k,p.val):null};
+    R.keys.push(row);
+    if(!p.ok){R.errors.push(row.label+" : contenu JSON illisible.");return}
+    if(!spec){R.warnings.push("Clé inconnue conservée telle quelle : "+k);return}
+    if(spec.kind==="array"&&!Array.isArray(p.val)){R.errors.push(row.label+" : doit être une liste.");return}
+    if(spec.kind==="object"&&!isObj(p.val)){R.errors.push(row.label+" : doit être un objet.");return}
+    if(spec.check){var e=spec.check(p.val);if(e.length)errs(e).forEach(function(m){R.errors.push(row.label+" → "+m)});
+      if(e.length>4)R.errors.push(row.label+" : "+(e.length-4)+" autre(s) anomalie(s).")}
+    if(spec.prod&&Array.isArray(p.val)&&ctx.names){var u={};
+      p.val.forEach(function(x){if(isObj(x)&&isStr(spec.prod(x))&&!names[spec.prod(x)])u[spec.prod(x)]=1});
+      var un=Object.keys(u);if(un.length)R.warnings.push(row.label+" : "+un.length+" produit(s) absent(s) du catalogue de cette installation ("+un.slice(0,3).join(", ")+(un.length>3?"…":"")+").")}
+  });
+  if(!has(d,"primeur_v2"))R.warnings.push("Marqueur de version absent : il sera ajouté pour protéger vos données au prochain démarrage.");
+  if(!has(d,"primeur_seed_DT491214"))R.warnings.push("Marqueur d’amorçage absent : la facture d’exemple DT491214 risque d’être ajoutée une seconde fois.");
+  R.data=d;R.fp=fp;R.ok=R.errors.length===0;return R}
+
+/* ---------- comparaison ---------- */
+function compare(cur,bak){var o={identical:false,onlyBackup:[],onlyLocal:[],diff:[]};
+  Object.keys(bak).sort().forEach(function(k){
+    if(!has(cur,k))o.onlyBackup.push({key:k,label:labelOf(k)});
+    else if(cur[k]!==bak[k]){var a=parse(cur[k]),b=parse(bak[k]);
+      o.diff.push({key:k,label:labelOf(k),cur:a.ok?countOf(k,a.val):null,bak:b.ok?countOf(k,b.val):null})}});
+  Object.keys(cur).sort().forEach(function(k){if(!has(bak,k))o.onlyLocal.push({key:k,label:labelOf(k)})});
+  o.identical=!o.onlyBackup.length&&!o.onlyLocal.length&&!o.diff.length;return o}
+
+/* ---------- plan : restauration complète ---------- */
+function planReplace(cur,bak){var t={},w=[];
+  Object.keys(bak).forEach(function(k){t[k]=bak[k]});
+  if(!has(t,"primeur_v2")){t["primeur_v2"]="1";w.push("Marqueur de version ajouté (protège vos données au démarrage).")}
+  var gone=Object.keys(cur).filter(function(k){return !has(t,k)});
+  if(gone.length)w.push("Données de cet appareil absentes de la sauvegarde, qui seront retirées : "+gone.map(labelOf).join(", ")+".");
+  var rep=Object.keys(t).sort().map(function(k){var a=has(cur,k)?parse(cur[k]):null,b=parse(t[k]);
+    return{key:k,label:labelOf(k),before:a&&a.ok?countOf(k,a.val):0,after:b.ok?countOf(k,b.val):0}});
+  return{target:t,report:rep,warnings:w}}
+
+/* ---------- plan : fusion sans doublons ---------- */
+function multiset(curArr,bakArr,ident){var cnt={},out=curArr.slice(),added=0,skipped=0,i,id;
+  curArr.forEach(function(x){id=ident(x);cnt[id]=(cnt[id]||0)+1});
+  bakArr.forEach(function(x){id=ident(x);if(cnt[id]>0){cnt[id]--;skipped++}else{out.push(x);added++}});
+  return{val:out,added:added,skipped:skipped,conflicts:0}}
+function mergeObj(c,b){var out={},k,added=0,skipped=0,conf=0;
+  for(k in c)if(has(c,k))out[k]=c[k];
+  for(k in b)if(has(b,k)){if(!has(out,k)){out[k]=b[k];added++}else if(same(out[k],b[k]))skipped++;else conf++}
+  return{val:out,added:added,skipped:skipped,conflicts:conf}}
+function planMerge(cur,bak,ctx){
+  var t={},rep=[],warn=[],idMap={};ctx=ctx||{};
+  Object.keys(cur).forEach(function(k){t[k]=cur[k]});
+  var order=Object.keys(bak).sort(function(a,b){
+    var pa=a==="primeur_clients_v1"?0:1,pb=b==="primeur_clients_v1"?0:1;return pa-pb||(a<b?-1:a>b?1:0)});
+  var catalog={};(ctx.names||[]).forEach(function(n){catalog[n]=1});
+  order.forEach(function(k){
+    var b=parse(bak[k]),r={key:k,label:labelOf(k),added:0,skipped:0,conflicts:0};rep.push(r);
+    if(!has(cur,k)){t[k]=bak[k];r.added=b.ok?countOf(k,b.val):1;
+      if(k==="primeur_clients_v1"&&b.ok)b.val.forEach(function(c){idMap[String(c.id)]=c.id});return}
+    var c=parse(cur[k]);
+    if(!c.ok||!b.ok){r.conflicts=1;warn.push(r.label+" : contenu illisible, version de cet appareil conservée.");return}
+    var res=null,cv=c.val,bv=b.val;
+    if(k==="primeur_log_v1"||k==="primeur_promos_v1"){
+      res=multiset(cv,bv,function(x){return JSON.stringify([x.t||"",x.sup||"",x.prod,x.kg,x.price===undefined?null:x.price,x.date,x.label||"",x.disc===undefined?null:x.disc,x.days||0,x.waste||0])})}
+    else if(k==="primeur_act_v1"){
+      res=multiset(cv,bv,function(x){return JSON.stringify([x.prod,x.qty,x.price,x.pct||0,x.status||"",x.start||"",x.end||""])});
+      var ids={},mx=0;cv.forEach(function(x){ids[x.id]=1;if(isNum(x.id))mx=Math.max(mx,x.id)});
+      res.val=res.val.map(function(x,i){if(i<cv.length)return x;
+        if(ids[x.id]){x=JSON.parse(JSON.stringify(x));x.id=++mx}ids[x.id]=1;return x})}
+    else if(k==="primeur_cp_v1"){var have={};cv.forEach(function(x){have[x.name]=1});
+      res={val:cv.slice(),added:0,skipped:0,conflicts:0};
+      bv.forEach(function(x){if(have[x.name]||catalog[x.name])res.skipped++;else{res.val.push(x);have[x.name]=1;res.added++}})}
+    else if(k==="primeur_clients_v1"){res={val:cv.map(function(x){return x}),added:0,skipped:0,conflicts:0};
+      bv.forEach(function(bc){
+        var byId=res.val.filter(function(x){return String(x.id)===String(bc.id)})[0];
+        var byName=res.val.filter(function(x){return norm(x.name)===norm(bc.name)&&x.type===bc.type})[0];
+        if(byId){idMap[String(bc.id)]=byId.id;if(same(byId,bc))res.skipped++;else res.conflicts++}
+        else if(byName){idMap[String(bc.id)]=byName.id;res.skipped++;
+          var pr=mergeObj(byName.prices||{},bc.prices||{});if(pr.added){byName.prices=pr.val}}
+        else{res.val.push(bc);idMap[String(bc.id)]=bc.id;res.added++}})}
+    else if(k==="primeur_orders_v1"){res={val:cv.slice(),added:0,skipped:0,conflicts:0};
+      bv.forEach(function(bo){var lo=res.val.filter(function(x){return String(x.id)===String(bo.id)})[0];
+        if(lo){if(same(lo,bo))res.skipped++;else res.conflicts++}
+        else{var o=JSON.parse(JSON.stringify(bo));if(has(idMap,String(o.cid)))o.cid=idMap[String(o.cid)];res.val.push(o);res.added++}});
+      var seen={};res.val.forEach(function(o){if(o.inv){if(seen[o.inv]&&seen[o.inv]!==String(o.id))warn.push("Numéro de facture "+o.inv+" présent sur deux commandes différentes : à contrôler.");seen[o.inv]=String(o.id)}})}
+    else if(k==="primeur_ord_v1"){var s={};cv.forEach(function(x){s[x]=1});res={val:cv.slice(),added:0,skipped:0,conflicts:0};
+      bv.forEach(function(x){if(s[x])res.skipped++;else{s[x]=1;res.val.push(x);res.added++}})}
+    else if(k==="primeur_invseq"){var m=Math.max(+cv||0,+bv||0);res={val:m,added:0,skipped:1,conflicts:0};if(m!==cv)res.added=1}
+    else if(KEYS[k]&&KEYS[k].kind==="flag"){res={val:cv,added:0,skipped:1,conflicts:0}}
+    else if(isObj(cv)&&isObj(bv)){res=mergeObj(cv,bv)}
+    else{res={val:cv,added:0,skipped:same(cv,bv)?1:0,conflicts:same(cv,bv)?0:1}}
+    r.added=res.added;r.skipped=res.skipped;r.conflicts=res.conflicts;
+    t[k]=k==="primeur_invseq"?String(res.val):JSON.stringify(res.val)});
+  if(!has(t,"primeur_v2"))t["primeur_v2"]="1";
+  return{target:t,report:rep,warnings:warn}}
+
+/* ---------- écriture sécurisée avec point de restauration ---------- */
+function wipe(st){var ks=[];for(var i=0;i<st.length;i++){var k=st.key(i);if(k&&k.indexOf(PREFIX)===0)ks.push(k)}ks.forEach(function(k){st.removeItem(k)})}
+function setAll(st,d){Object.keys(d).forEach(function(k){st.setItem(k,d[k])})}
+function apply(st,target,reason,now){
+  var cur=readLocal(st),snap={at:now||new Date().toISOString(),reason:reason||"",fp:fingerprint(cur),data:cur};
+  try{st.setItem(SNAP,JSON.stringify(snap))}
+  catch(e){return{ok:false,error:"Espace insuffisant pour créer le point de restauration. Exportez d’abord une sauvegarde en fichier, puis réessayez."}}
+  try{wipe(st);setAll(st,target);
+    var after=readLocal(st);if(canonical(after)!==canonical(target))throw new Error("verify");
+    return{ok:true,fp:fingerprint(target),before:snap.fp}}
+  catch(e){
+    try{st.removeItem(SNAP);wipe(st);setAll(st,cur);st.setItem(SNAP,JSON.stringify(snap))}catch(e2){try{wipe(st);setAll(st,cur)}catch(e3){}}
+    var back=readLocal(st);
+    return{ok:false,error:"L’écriture a échoué ; "+(canonical(back)===canonical(cur)?"vos données d’origine ont été remises en place.":"restauration incomplète : utilisez immédiatement le fichier de sauvegarde."),rolledBack:canonical(back)===canonical(cur)}}}
+function getSnap(st){try{var r=st.getItem(SNAP);if(!r)return null;var s=JSON.parse(r);return s&&s.data?s:null}catch(e){return null}}
+
+root.MDSBackup={PREFIX:PREFIX,SNAP:SNAP,MSG:MSG,LASTX:LASTX,sha256:sha256,readLocal:readLocal,canonical:canonical,
+  fingerprint:fingerprint,sizeOf:sizeOf,build:build,verify:verify,compare:compare,planReplace:planReplace,planMerge:planMerge,
+  apply:apply,getSnap:getSnap,labelOf:labelOf,KEYS:KEYS};
+if(typeof module!=="undefined"&&module.exports)module.exports=root.MDSBackup;
+})(typeof window!=="undefined"?window:(typeof globalThis!=="undefined"?globalThis:this));
+
+</script>
+<script>
+(function(){
+"use strict";
+var EXPECT_SHA="b60228bea86434b13aeb119cc2677c233bfe41d7ee75cb3eadf51a3a1e6d3212",EXPECT_SIZE=153376,DEFAULT_FP="c4927c084dc314ab",MAXJ=40;
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function row(k,v){return "<b>"+esc(k)+"</b><span>"+v+"</span>"}
+var S=null;try{S=window.localStorage}catch(e){}
+function rd(k){try{return S.getItem(k)}catch(e){return null}}
+function wr(k,v){try{S.setItem(k,v);return true}catch(e){return false}}
+function pj(s){try{return JSON.parse(s)}catch(e){return null}}
+function openDb(){return new Promise(function(res){var r;try{r=indexedDB.open("essai_a4b",1)}catch(e){return res(null)}
+  r.onupgradeneeded=function(){try{r.result.createObjectStore("k")}catch(e){}};r.onsuccess=function(){res(r.result)};r.onerror=function(){res(null)};r.onblocked=function(){res(null)}})}
+function dbGet(db,k){return new Promise(function(res){if(!db)return res(null);try{var q=db.transaction("k").objectStore("k").get(k);q.onsuccess=function(){res(q.result===undefined?null:q.result)};q.onerror=function(){res(null)}}catch(e){res(null)}})}
+function dbSet(db,k,v){return new Promise(function(res){if(!db)return res(false);try{var t=db.transaction("k","readwrite");t.objectStore("k").put(v,k);t.oncomplete=function(){res(true)};t.onerror=function(){res(false)}}catch(e){res(false)}})}
+function ckGet(){var m=document.cookie.match(/(?:^|; )essai_t=([^;]*)/);return m?m[1]:null}
+function ckSet(v){try{document.cookie="essai_t="+v+"; max-age=31536000; path=/; SameSite=Lax"+(location.protocol==="https:"?"; Secure":"")}catch(e){}}
+function hex(buf){return Array.prototype.map.call(new Uint8Array(buf),function(b){return("0"+b.toString(16)).slice(-2)}).join("")}
+function appState(){
+  var keys=[],d={};try{d=MDSBackup.readLocal(S);keys=Object.keys(d).sort()}catch(e){}
+  var fp="erreur";try{fp=MDSBackup.build(d,{at:"2026-01-01T00:00:00Z"}).empreinte.slice(7,23)}catch(e){}
+  var logn=null,essai=0;var L=pj(d["primeur_log_v1"]||"[]");if(Array.isArray(L)){logn=L.length;essai=L.filter(function(x){return JSON.stringify(x).indexOf("ESSAI")>-1}).length}
+  return{keys:keys,n:keys.length,fp:fp,logn:logn,essai:essai,v2:("primeur_v2" in d),seed:("primeur_seed_DT491214" in d)}}
+function same(a,b){return a&&b&&a.fp===b.fp&&a.n===b.n&&a.logn===b.logn&&a.essai===b.essai}
+function verdict(code,level,html){var v=$("verdict");v.setAttribute("data-code",code);v.setAttribute("data-level",level);$("vtxt").innerHTML=html}
+var CTX={};
+async function main(){
+  var now=new Date().toISOString(),secure=window.isSecureContext;
+  // ---- 1. adresse et version
+  var ver={ok:null,sha:"",size:0,err:""};
+  try{var r=await fetch("index.html",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status+" : index.html absent à cette adresse");var buf=await r.arrayBuffer();ver.size=buf.byteLength;ver.sha=hex(await crypto.subtle.digest("SHA-256",buf));ver.ok=(ver.sha===EXPECT_SHA&&ver.size===EXPECT_SIZE)}catch(e){ver.err=String(e&&e.message||e)}
+  var href=location.href.split("#")[0],base=href.replace(/[^\/]*$/,"");
+  $("s1").innerHTML=row("Adresse de la page",esc(href))+row("Adresse de l'application",esc(base+"index.html"))+row("Origine",esc(location.origin))+row("HTTPS",location.protocol==="https:"?'<span class="ok">oui</span>':(secure?'<span class="wa">non (contexte sûr local)</span>':'<span class="ko">non</span>'))
+   +row("Version servie",ver.ok===null?'<span class="wa">non vérifiable ('+esc(ver.err)+")</span>":(ver.ok?'<span class="ok">✔ A4b attendue</span>':'<span class="ko">✘ DIFFÉRENTE de l\'A4b attendue</span>'))
+   +row("SHA-256 (16 premiers)",esc(ver.sha.slice(0,16)||"—")+" <span class='m'>attendu "+EXPECT_SHA.slice(0,16)+"</span>")+row("Taille",esc(ver.size)+" o <span class='m'>attendu "+EXPECT_SIZE+"</span>");
+  // ---- 2. témoins (état AVANT cette ouverture)
+  var db=await openDb(),idb0=await dbGet(db,"temoin"),ls0=pj(rd("essai_temoin_v1")),ck0=ckGet();
+  var seen={ls:!!ls0,idb:!!idb0,ck:!!ck0},any=seen.ls||seen.idb||seen.ck;
+  var prev=ls0||idb0||null,opens=((prev&&prev.opens)||0)+1,id=(prev&&prev.id)||(Math.random().toString(36).slice(2,10)),first=(prev&&prev.first)||now;
+  var tem={id:id,first:first,opens:opens};
+  var okLs=wr("essai_temoin_v1",JSON.stringify(tem)),okIdb=await dbSet(db,"temoin",tem);ckSet(id+"."+opens);
+  var pers=null,est=null;try{if(navigator.storage&&navigator.storage.persisted)pers=await navigator.storage.persisted();if(navigator.storage&&navigator.storage.estimate){var e1=await navigator.storage.estimate();est=Math.round(e1.usage/1024)+" Ko"}}catch(e){}
+  function tl(b,w){return b?'<span class="ok">✔ présent</span>':'<span class="'+(any?"ko":"m")+'">'+(any?"✘ absent":"— nouveau")+"</span>"}
+  $("s2").innerHTML=row("localStorage",tl(seen.ls)+(okLs?"":' <span class="ko">(écriture impossible)</span>'))+row("IndexedDB",tl(seen.idb)+(okIdb?"":' <span class="ko">(écriture impossible)</span>'))+row("Cookie",tl(seen.ck))
+   +row("Ouverture n°","<b>"+opens+"</b> <span class='m'>depuis "+esc(first.replace("T"," ").slice(0,16))+" UTC</span>")+row("Stockage persistant",pers===null?"—":(pers?"oui":"non (révocable par le navigateur)"))+row("Usage estimé",esc(est||"—"));
+  // ---- 3. données de l'application
+  var cur=appState();
+  $("s3").innerHTML=row("Empreinte","<b class='mono'>"+esc(cur.fp)+"</b>"+(cur.fp===DEFAULT_FP?" <span class='wa'>= données d'exemple</span>":""))+row("Clés primeur_*",esc(cur.n))+row("Saisies (log)",esc(cur.logn===null?"illisible":cur.logn))+row("Saisies « ESSAI »",esc(cur.essai))
+   +row("Marqueur de version",cur.v2?"présent":'<span class="ko">absent</span>')+row("Marqueur d'amorçage",cur.seed?"présent":'<span class="ko">absent</span>');
+  // ---- 4. état attendu
+  var att=pj(rd("essai_attendu_v1"))||(await dbGet(db,"attendu"));CTX={db:db,cur:cur};
+  if(att)$("s4").innerHTML="Mémorisé le "+esc(att.t.replace("T"," ").slice(0,16))+" UTC : empreinte <b class='mono'>"+esc(att.fp)+"</b>, "+att.n+" clés, "+att.logn+" saisies dont "+att.essai+" « ESSAI ».";
+  else $("s4").textContent="Rien de mémorisé. Faites une saisie « ESSAI » dans l'application, revenez ici, relisez, puis mémorisez.";
+  // ---- verdict
+  var code,lv,tx;
+  if(ver.ok===false){code="version";lv="ko";tx="<b class='ko'>La version servie n'est pas l'A4b attendue.</b> Ne concluez rien sur la persistance."}
+  else if(!att&&!any){code="premiere";lv="wa";tx="<b>Première ouverture sur cette adresse</b> (ou stockage entièrement effacé depuis la dernière fois : si vous avez déjà ouvert cette page, le navigateur a tout effacé — voir le journal)."}
+  else if(!att){code="sans_attendu";lv="wa";tx="Témoins présents, aucun état attendu mémorisé : rien à comparer."}
+  else if(same(cur,att)){code="identique";lv="ok";tx="<b class='ok'>✔ Données identiques à l'état attendu</b> (même empreinte, mêmes clés, mêmes saisies)."}
+  else if(cur.fp===DEFAULT_FP&&att.fp!==DEFAULT_FP){code="exemples_reinjectes";lv="ko";tx="<b class='ko'>✘ Les témoins ont survécu, mais les données de l'application sont revenues aux exemples.</b> Le navigateur n'a donc PAS tout effacé : une remise à zéro vient de l'application, de son démarrage ou d'une autre page de la même adresse. Copiez le journal."}
+  else{code="different";lv="ko";tx="<b class='ko'>✘ Données différentes de l'état attendu.</b> Empreinte "+esc(cur.fp)+" au lieu de "+esc(att.fp)+" ; "+cur.n+" clés au lieu de "+att.n+" ; "+cur.logn+" saisies au lieu de "+att.logn+"."}
+  var part=(any&&!(seen.ls&&seen.idb&&seen.ck));
+  if(part&&code!=="premiere")tx+="<br><span class='wa'>Témoins partiellement conservés : localStorage "+(seen.ls?"✔":"✘")+", IndexedDB "+(seen.idb?"✔":"✘")+", cookie "+(seen.ck?"✔":"✘")+".</span>";
+  verdict(code,lv,tx);
+  // ---- journal
+  var J=pj(rd("essai_journal_v1"))||[];J.push({t:now,u:href,ver:ver.ok,sha:ver.sha.slice(0,8),fp:cur.fp,n:cur.n,log:cur.logn,essai:cur.essai,tm:[+seen.ls,+seen.idb,+seen.ck],op:opens,v:code});
+  J=J.slice(-MAXJ);wr("essai_journal_v1",JSON.stringify(J));CTX.J=J;
+  $("jr").textContent=J.map(function(x,i){return(i+1)+". "+x.t.replace("T"," ").slice(0,19)+"Z "+x.v+" | fp "+x.fp+" | "+x.n+" clés | log "+x.log+" (ESSAI "+x.essai+") | témoins "+x.tm.join("")+" | ouv. "+x.op+" | A4b "+(x.ver===null?"?":x.ver?"ok":"NON")+" "+x.sha+" | "+x.u}).join("\n");
+  document.documentElement.setAttribute("data-ready","1");
+}
+$("bAtt").onclick=async function(){var c=appState(),a={t:new Date().toISOString(),fp:c.fp,n:c.n,logn:c.logn,essai:c.essai};wr("essai_attendu_v1",JSON.stringify(a));await dbSet(CTX.db,"attendu",a);location.reload()};
+$("bRel").onclick=function(){location.reload()};
+$("bCp").onclick=function(){var t=$("jr").textContent;(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject()).then(function(){$("bCp").textContent="✔ Copié"},function(){var r=document.createRange();r.selectNodeContents($("jr"));var s=getSelection();s.removeAllRanges();s.addRange(r);$("bCp").textContent="Sélectionné : copiez à la main"})};
+$("bRaz").onclick=async function(){if(!confirm("Effacer les témoins et le journal de cette page ? (vos données de l'application ne sont pas touchées)"))return;try{["essai_temoin_v1","essai_attendu_v1","essai_journal_v1"].forEach(function(k){S.removeItem(k)})}catch(e){}try{document.cookie="essai_t=; max-age=0; path=/"}catch(e){}try{if(CTX.db)CTX.db.close();indexedDB.deleteDatabase("essai_a4b")}catch(e){}setTimeout(function(){location.reload()},300)};
+main().catch(function(e){verdict("erreur","ko","Erreur du contrôle : "+esc(e&&e.message||e))});
+})();
+</script></body></html>
